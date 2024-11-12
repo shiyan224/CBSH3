@@ -1,0 +1,3 @@
+/home/shiyan/Documents/CBSH3/cmake-build-debug/CMakeFiles/CBSH3.dir
+/home/shiyan/Documents/CBSH3/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/shiyan/Documents/CBSH3/cmake-build-debug/CMakeFiles/rebuild_cache.dir
