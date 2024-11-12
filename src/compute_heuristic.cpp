@@ -3,7 +3,7 @@
 #include <iostream>
 #include "LLNode.h"
 #include "common.h"
-
+//计算图中每个位置到终点的距离，即为h_val
 using std::cout;
 using std::endl;
 
@@ -26,7 +26,7 @@ bool ComputeHeuristic::validMove(int curr, int next) const
 
 void ComputeHeuristic::getHVals(vector<int>& res)
 {
-	size_t root_location = goal_location;
+	size_t root_location = goal_location; //从终点出发
 	res.resize(map_rows * map_cols);
 	for (int i = 0; i < map_rows * map_cols; i++)
 		res[i] = INT_MAX;
@@ -42,14 +42,14 @@ void ComputeHeuristic::getHVals(vector<int>& res)
 	LLNode* root = new LLNode(root_location, 0, 0, nullptr, 0);
 	root->open_handle = heap.push(root);  // add root to heap
 	nodes.insert(root);       // add root to hash_table (nodes)
-	while (!heap.empty()) {
+	while (!heap.empty()) { // BFS,计算每个位置的g_val
 		LLNode* curr = heap.top();
 		heap.pop();
 
 		for (int direction = 0; direction < 5; direction++)
 		{
 			int next_loc = curr->loc + moves_offset[direction];
-			if (validMove(curr->loc, next_loc) && !my_map[next_loc])
+			if (validMove(curr->loc, next_loc) && !my_map[next_loc]) //!my_map[next_loc]表示next_loc非障碍物
 			{  // if that grid is not blocked
 				int next_g_val = curr->g_val + 1;
 				LLNode* next = new LLNode(next_loc, next_g_val, 0, nullptr, 0);

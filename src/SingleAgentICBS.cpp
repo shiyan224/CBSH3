@@ -134,7 +134,7 @@ bool SingleAgentICBS::findPath(std::vector<PathEntry> &path, const std::vector <
 		// check if the popped node is a goal
 		if (curr->loc == goal_location && curr->timestep >= minLength)
 		{
-			updatePath(curr, path);
+			updatePath(curr, path); //回溯记录路径.
 			releaseClosedListNodes(&allNodes_table);
 			open_list.clear();
 			focal_list.clear();
@@ -164,7 +164,7 @@ bool SingleAgentICBS::findPath(std::vector<PathEntry> &path, const std::vector <
 					next->open_handle = open_list.push(next);
 					next->in_openlist = true;
 					num_generated++;
-					if (next->getFVal() <= lower_bound)
+					if (next->getFVal() <= lower_bound) //?????????????????????????????????????????????????????????
 						next->focal_handle = focal_list.push(next);
 					allNodes_table.insert(next);
 				}

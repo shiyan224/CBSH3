@@ -10,12 +10,12 @@
 inline void ICBSSearch::updatePaths(ICBSNode* curr)
 {
 	for(int i = 0; i < num_of_agents; i++)
-		paths[i] = &paths_found_initially[i];
+		paths[i] = &paths_found_initially[i]; // 获取每个agent的初始路径
 	vector<bool> updated(num_of_agents, false);  // initialized for false
 
-	while (curr->parent != nullptr)
+	while (curr->parent != nullptr) // 从curr开始向树根方向跳转
 	{
-		if (!updated[curr->agent_id])
+		if (!updated[curr->agent_id]) // 沿路更新相应agent的路径
 		{
 			if (curr->path.empty())
 				cout << "ERROR" << endl;
@@ -429,7 +429,7 @@ void ICBSSearch::findConflicts(ICBSNode& curr)
 				continue;
 			else if (search_engines[a1]->num_of_conf == 0) // New path does not have conflicts with others before it reaches its goal
 			{
-				if (paths[a1]->size() + 1 < paths[a2]->size())
+				if (paths[a1]->size() + 1 < paths[a2]->size()) // ?
 				{
 					int loc1 = paths[a1]->back().location;
 					for (size_t timestep = paths[a1]->size(); timestep < paths[a2]->size(); timestep++)
@@ -631,9 +631,9 @@ void ICBSSearch::classifyConflicts(ICBSNode &parent)
 		parent.unknownConf.pop_front();
 
 		bool cardinal1 = false, cardinal2 = false;
-		if (get<4>(*con) >= (int)paths[get<0>(*con)]->size())
+		if (get<4>(*con) >= (int)paths[get<0>(*con)]->size()) // 碰撞发生在a_1到达终点之后,
 			cardinal1 = true;
-		else if (!paths[get<0>(*con)]->at(0).single)
+		else if (!paths[get<0>(*con)]->at(0).single) // p_j[0] not single意味着未建立MDD
 		{
 			MDD* mdd = buildMDD(parent, get<0>(*con));
 			for (size_t i = 0; i < mdd->levels.size(); i++)
@@ -641,9 +641,9 @@ void ICBSSearch::classifyConflicts(ICBSNode &parent)
 			if (mddTable.empty())
 				delete mdd;
 		}
-		if (get<4>(*con) >= (int)paths[get<1>(*con)]->size())
+		if (get<4>(*con) >= (int)paths[get<1>(*con)]->size()) // conflict发生在a_2到达终点后
 			cardinal2 = true;
-		else if (!paths[get<1>(*con)]->at(0).single)
+		else if (!paths[get<1>(*con)]->at(0).single) // 未建立MDD
 		{
 			MDD* mdd = buildMDD(parent, get<1>(*con));
 			for (size_t i = 0; i < mdd->levels.size(); i++)
@@ -1400,7 +1400,7 @@ ICBSSearch::ICBSSearch(const MapLoader& ml, const AgentsLoader& al, double f_w, 
 		ComputeHeuristic ch(init_loc, goal_loc, ml.get_map(), ml.rows, ml.cols, ml.get_moves_offset());
 		search_engines[i] = new SingleAgentICBS(init_loc, goal_loc, ml.get_map(), ml.rows*ml.cols,
 			ml.get_moves_offset(), ml.cols);
-		ch.getHVals(search_engines[i]->my_heuristic);
+		ch.getHVals(search_engines[i]->my_heuristic); //对每个agent_i预处理h_val，即图中每个位置到goal_location的距离.
 	}
 
 	dummy_start = new ICBSNode();
@@ -1416,6 +1416,7 @@ ICBSSearch::ICBSSearch(const MapLoader& ml, const AgentsLoader& al, double f_w, 
 		CAT cat(dummy_start->makespan + 1);  // initialized to false
 		updateReservationTable(cat, i, *dummy_start);
 
+		//计算每个agent的初始路径，algorithm:focal search A*，break ties with "num of collisions"
 		if (search_engines[i]->findPath(paths_found_initially[i], cons_vec, cat, 0) == false)
 			cout << "NO SOLUTION EXISTS";
 
