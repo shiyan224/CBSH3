@@ -235,7 +235,7 @@ int ICBSSearch::getEdgeWeight(int a1, int a2, const vector<list<Constraint>> & c
 			}
 			mdd2 = mdds_initially[a2];
 		}*/
-		if (mdd1->levels.size() > mdd2->levels.size()) // swap
+		if (mdd1->levels.size() > mdd2->levels.size()) // swap, keep mdd1 level <= mdd2 level
 		{
 			const MDD* temp = mdd1;
 			mdd1 = mdd2;
@@ -273,8 +273,8 @@ int ICBSSearch::getEdgeWeight(int a1, int a2, const vector<list<Constraint>> & c
 		vector<vector<PathEntry>> initial_paths(2);
 		initial_paths[0] = *paths[a1];
 		initial_paths[1] = *paths[a2];
-		double cutoffTime = std::min(MAX_RUNTIME4PAIR * 1.0, time_limit - runtime);
-		int upperbound = initial_paths[0].size() + initial_paths[1].size() + 10;
+		double cutoffTime = std::min(MAX_RUNTIME4PAIR * 1.0, time_limit - runtime); // 设置时限
+		int upperbound = initial_paths[0].size() + initial_paths[1].size() + 10; // 上界
 		ICBSSearch solver(ml, engines, cons, initial_paths, 1.0, max(rst, 0), heuristics_type::CG, true, rectangleReasoning, upperbound, cutoffTime, scr);
 		solver.max_num_of_mdds = this->max_num_of_mdds;
 		solver.runICBSSearch();
@@ -294,6 +294,8 @@ bool ICBSSearch::buildDependenceGraph(ICBSNode& node)
 	// extract all constraints
 	vector<list<Constraint>> constraints = initial_constraints;
 	ICBSNode* curr = &node;
+
+	// 向根回溯，收集constraint
 	while (curr != dummy_start)
 	{
 		for (const auto& constraint : curr->constraints)
@@ -316,14 +318,14 @@ bool ICBSSearch::buildDependenceGraph(ICBSNode& node)
 		}
 	}
 
-	for (auto conflict : node.cardinalConf)
+	for (auto conflict : node.cardinalConf) // 遍历cardinal conflict
 	{
 		int a1 = min(get<0>(*conflict), get<1>(*conflict));
 		int a2 = max(get<0>(*conflict), get<1>(*conflict));
 		int idx = a1 * num_of_agents + a2;
 		if (h_type == heuristics_type::DG)
 		{
-			node.conflictGraph[idx] = 1;
+			node.conflictGraph[idx] = 1; // 邻接矩阵
 		}
 		else if (node.conflictGraph.find(idx) == node.conflictGraph.end())  // Not already in the map
 		{
@@ -787,7 +789,7 @@ void ICBSSearch::removeLowPriorityConflicts(std::list<std::shared_ptr<Conflict>>
 		while (p2 != conflicts.end())
 		{
 			if ((get<0>(**p2) == a1 && get<1>(**p2) == a2) || (get<1>(**p2) == a1 && get<0>(**p2) == a2))
-			{
+				{
 				if (max(get<4>(**p1), get<4>(**p2)) >= (int)min(paths[a1]->size(), paths[a2]->size()))
 					keepP1 = get<4>(**p1) <= get<4>(**p2);
 				else
@@ -864,17 +866,18 @@ bool ICBSSearch::generateChild(ICBSNode*  node, ICBSNode* parent)
 
 	t1 = std::clock();
 
-
+	//设置lowerbound
 	int lowerbound;
 	if (get<2>(*parent->conflict) < 0) // both constraints are at goal locations
 		lowerbound = 0; // lowver bound here is meaningless
 	else if (get<4>(*parent->conflict) >= (int)paths[node->agent_id]->size()) //conflict happens after agent reaches its goal
-		lowerbound = get<4>(*parent->conflict) + 1;
+		lowerbound = get<4>(*parent->conflict) + 1; // 必须在conflict发生的时刻之后到达goal
 	//else if (parent->h_val > 0) // the chosen conflict is cardinal
 	//	lowerbound = (int)paths[node->agent_id]->size();
 	else
 		lowerbound = (int)paths[node->agent_id]->size() - 1;
-		
+
+	// 重新规划agent_id的路径
 	if (!findPathForSingleAgent(node, node->agent_id, lowerbound))
 		return false;
 
@@ -1165,7 +1168,7 @@ bool ICBSSearch::runICBSSearch()
 			runtime_conflictdetection += (std::clock() - t1) * 1000.0 / CLOCKS_PER_SEC;
 
 			t1 = std::clock();
-			int h = computeHeuristics(*curr);	
+			int h = computeHeuristics(*curr); // lazy A*，计算WDG
 			double runtime_h = (std::clock() - t1) * 1000.0 / CLOCKS_PER_SEC;
 			runtime_computeh += runtime_h;
 			HL_num_heuristics++;
@@ -1188,6 +1191,7 @@ bool ICBSSearch::runICBSSearch()
 			if (screen == 2)
 				curr->printConflictGraph(num_of_agents);
 
+			// 选取冲突
 			chooseConflict(*curr);
 
 			if (curr->f_val > focal_list_threshold)
@@ -1211,12 +1215,15 @@ bool ICBSSearch::runICBSSearch()
 		if (screen == 3)
 			std::cout << "Expand Node " << curr->time_generated << " ( " << curr->f_val << "= " << curr->g_val << " + " <<
 				curr->h_val << " ) on conflict " << *curr->conflict << std::endl;
+		// 创建新ICBS节点
 		ICBSNode* n1 = new ICBSNode();
 		ICBSNode* n2 = new ICBSNode();
-			
+
+		// 为两个节点指定agent_id
 		n1->agent_id = get<0>(*curr->conflict);
 		n2->agent_id = get<1>(*curr->conflict);
 
+		// 为两个节点加入constraints
 		if (get<2>(*curr->conflict) < 0) // Rectangle conflict
 		{
 			int Rg = -1 - get<2>(*curr->conflict);
@@ -1260,6 +1267,7 @@ bool ICBSSearch::runICBSSearch()
 			n1 = nullptr;
 		}
 		paths = copy;
+
 		Sol2 = generateChild(n2, curr);
 		if (screen == 3 && Sol2)
 		{
